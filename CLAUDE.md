@@ -38,7 +38,9 @@ Look up exact API model IDs in current Anthropic docs rather than guessing. Do n
 ## Stack
 - TypeScript, Next.js, Tailwind CSS v4, pnpm. Nae uses WebStorm; don't suggest other editors or languages.
 - New projects host on **Cloudflare Workers**, not Vercel.
-- Database: Neon Postgres + Drizzle. Auth: hand-rolled session auth (port `lib/auth.ts` from personal-context-mcp / Tangle / Kindling; don't rewrite it). Decided by Nae 2026-10-17; not wired yet.
+- Database: Neon Postgres + Drizzle (Neon project `chaoslimba-v2`; local dev uses its `dev` branch via `.env.local`). Schema in `src/db/schema.ts`; `pnpm db:generate` / `pnpm db:migrate`.
+- Auth: hand-rolled session auth in `src/lib/auth.ts`, ported from Tangle/Kindling (PBKDF2 via Web Crypto, users in Postgres, sessions in Upstash Redis `chaoslimba-v2`). PBKDF2 needs the Workers Paid plan (~60ms CPU per hash).
+- Keep `cacheComponents` off: under workerd it hangs page renders.
 - Workers deploy via OpenNext (`@opennextjs/cloudflare`); config in `wrangler.jsonc` and `open-next.config.ts`. Models live in `src/lib/models.ts`.
 - Ask before adding dependencies, external services, or anything with a recurring cost.
 
