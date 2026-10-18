@@ -54,7 +54,7 @@ Each error type is a plant whose health tracks recent accuracy on that structure
 
 | State | Meaning | Rule (starting numbers, Oct 18) |
 | --- | --- | --- |
-| Sprout | Not enough data yet | Fewer than 5 attempts; health hidden |
+| Sprout | Not enough data yet | Fewer than 5 confident attempts ("maybe" grades don't count); health hidden |
 | Wilting | Struggling right now | Below 60% over the last 10 confident attempts |
 | Growing | Improving | 60 to 84% |
 | Thriving | Outgrown for now | 85% or more, with attempts spread over at least 2 sessions |
@@ -195,7 +195,6 @@ First steps, in order:
 
 Open questions:
 
-- Plant thresholds: starting numbers set Oct 18 (see the garden table). Still open: does a "maybe" grade count toward the 5 attempts that end the sprout stage?
 - Which native speaker verifies the gold sets
 - What happens to Workshop, Mystery Shelf, Deep Fog, and generated content
 - Whether a browser build of espeak-ng is usable for reference phonemes
