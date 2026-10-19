@@ -4,5 +4,8 @@
 /** Grades learner Romanian and is the only writer to the Error Garden. Also grades intake. */
 export const GRADER_MODEL = "claude-sonnet-5-5";
 
+/** Grader thinking depth. Part of the grader config: changing it means rerunning the gold set. */
+export const GRADER_EFFORT = "medium";
+
 /** Conversation partner. Reads the garden, never grades. Also runs the intake chat. */
 export const TUTOR_MODEL = "claude-haiku-5-5";

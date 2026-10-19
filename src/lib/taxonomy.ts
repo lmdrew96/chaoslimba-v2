@@ -213,10 +213,13 @@ export const PLANTS = [
 export type Plant = (typeof PLANTS)[number];
 export type PlantId = Plant["id"];
 
-const PLANT_IDS: ReadonlySet<string> = new Set(PLANTS.map((plant) => plant.id));
+/** Every plant id, in taxonomy order. Typed as a non-empty tuple so it can back a Postgres enum. */
+export const PLANT_IDS = PLANTS.map((plant) => plant.id) as [PlantId, ...PlantId[]];
+
+const PLANT_ID_SET: ReadonlySet<string> = new Set(PLANT_IDS);
 
 /** Checks model output at runtime; an unknown id must be rejected, never guessed. */
-export const isPlantId = (value: string): value is PlantId => PLANT_IDS.has(value);
+export const isPlantId = (value: string): value is PlantId => PLANT_ID_SET.has(value);
 
 export const getPlant = (id: PlantId): Plant => {
   const plant = PLANTS.find((p) => p.id === id);

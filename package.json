@@ -1,6 +1,6 @@
 {
   "name": "chaoslimba-v2",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -16,6 +16,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
     "@neondatabase/serverless": "^1.2.0",
     "@opennextjs/cloudflare": "^1.20.12",
     "@upstash/redis": "^1.39.0",
@@ -24,7 +25,10 @@
     "next": "16.4.2",
     "next-themes": "^0.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-markdown": "^10.1.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
