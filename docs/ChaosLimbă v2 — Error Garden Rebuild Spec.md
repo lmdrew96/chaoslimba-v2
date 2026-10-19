@@ -106,7 +106,7 @@ Beautiful Mistakes stay: the grader flags rare errors that show creativity, and 
 | Sentence building | Prepositions | `prepositions` | mă gândesc despre tine → mă gândesc la tine |
 | Sentence building | Negative concord | `negative-concord` | nu am văzut pe cineva → nu am văzut pe nimeni |
 | Sentence building | Word choice / calques | `word-choice` | sunt 25 ani vechi → am 25 de ani |
-| Sentence building | Word order | `word-order` | catch-all for placement errors |
+| Sentence building | Word order | `word-order` | no single example; depends on syntax, meaning and pragmatics (topic, focus, emphasis) |
 | Spelling & sound | Diacritics | `diacritics` | fara → fără |
 | Spelling & sound | Spelling (î/â, -ii) | `spelling` | copii vs copiii |
 | Spelling & sound | Stress | `stress` | TORturi (cakes) vs torTUri (tortures) |

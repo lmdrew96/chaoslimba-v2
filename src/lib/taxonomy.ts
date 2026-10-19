@@ -33,7 +33,7 @@ type PlantDefinition = {
   name: string;
   bed: BedId;
   description: string;
-  /** Null where the spec gives no single example (catch-alls, phoneme-model output). */
+  /** Null where the spec gives no single example (word order, phoneme-model output). */
   example: PlantExample | null;
 };
 
@@ -170,7 +170,7 @@ export const PLANTS = [
     id: "word-order",
     name: "Word order",
     bed: "sentence-building",
-    description: "Catch-all for placement errors.",
+    description: "Ordering words and phrases, which depends on syntax, meaning and pragmatics (topic, focus, emphasis).",
     example: null,
   },
 
