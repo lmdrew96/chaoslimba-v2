@@ -33,7 +33,7 @@ type PlantDefinition = {
   name: string;
   bed: BedId;
   description: string;
-  /** Null where the spec gives no single example (word order, phoneme-model output). */
+  /** Null where the spec gives no single example (phoneme-model output). */
   example: PlantExample | null;
 };
 
@@ -171,7 +171,12 @@ export const PLANTS = [
     name: "Word order",
     bed: "sentence-building",
     description: "Ordering words and phrases, which depends on syntax, meaning and pragmatics (topic, focus, emphasis).",
-    example: null,
+    example: {
+      error: "Ce Maria a cumpărat?",
+      fix: "Ce a cumpărat Maria?",
+      note: "In wh-questions the verb comes right after the question word, so the subject can't sit between them",
+      verified: false,
+    },
   },
 
   // Spelling & sound
