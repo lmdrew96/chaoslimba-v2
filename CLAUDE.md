@@ -32,8 +32,9 @@ One constant per role in a single config file. Never inline a model string.
 | Grader (also grades intake) | Claude Sonnet 5.5 | `GRADER_MODEL` |
 | Tutor (also runs intake conversation) | Claude Haiku 5.5 | `TUTOR_MODEL` |
 | Phoneme recognition | `facebook/wav2vec2-xlsr-53-espeak-cv-ft`, ONNX q4, transformers.js in the browser | n/a |
+| Speech-to-text | Whisper (`onnx-community/whisper-large-v3-turbo` to start), transformers.js in the browser | n/a |
 
-Look up exact API model IDs in current Anthropic docs rather than guessing. Do not use Groq/Llama for anything that judges or writes Romanian. Do not add RunPod.
+Look up exact API model IDs in current Anthropic docs rather than guessing. Do not use Groq/Llama for anything, speech-to-text included. Do not add RunPod.
 
 ## Stack
 - TypeScript, Next.js, Tailwind CSS v4, pnpm. Nae uses WebStorm; don't suggest other editors or languages.

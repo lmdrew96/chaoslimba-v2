@@ -139,11 +139,11 @@ Reference phonemes: v1 makes the target via Google TTS and runs it through the m
 
 Pronunciation gold set: 20 to 30 clips of human Romanian speakers, used to check scores and to replace the arbitrary 0.70 pass threshold. Until then, pronunciation seeds count as "maybe."
 
-The stress minimal-pairs table and Whisper transcription stay as they are.
+The stress minimal-pairs table stays as it is. Whisper transcription also moves into the browser (decided Oct 18), so no learner audio goes to Groq.
 
 ## Models
 
-Sonnet 5.5 for anything that judges Romanian, Haiku 5.5 for conversation. Groq/Llama comes out of every role that judges or writes Romanian. This follows Nae's October decision to run kept apps on Haiku / Sonnet 5.5.
+Sonnet 5.5 for anything that judges Romanian, Haiku 5.5 for conversation. Groq/Llama comes out of every role, speech-to-text included. This follows Nae's October decision to run kept apps on Haiku / Sonnet 5.5.
 
 | Role | Model | Config constant |
 | --- | --- | --- |
@@ -152,7 +152,7 @@ Sonnet 5.5 for anything that judges Romanian, Haiku 5.5 for conversation. Groq/L
 | Intake conversation | Haiku 5.5 (the tutor) | `TUTOR_MODEL` |
 | Intake grading | Sonnet 5.5 (the grader) | `GRADER_MODEL` |
 | Phoneme recognition | wav2vec2 xlsr-53 espeak, in browser | n/a |
-| Speech-to-text | Whisper on Groq, unchanged | unchanged |
+| Speech-to-text | Whisper (large-v3-turbo to start), in browser | n/a |
 
 One constant per role, so a swap is one line tested against the gold set. Once the gold set exists, run Haiku as the grader; if its precision is close to Sonnet's, switch.
 
@@ -199,4 +199,3 @@ Open questions:
 - What happens to Workshop, Mystery Shelf, Deep Fog, and generated content
 - Whether a browser build of espeak-ng is usable for reference phonemes
 - Whether v2 needs an HTTP MCP server (a v1 patch, deleted Oct 16; the local server failed Neon auth)
-- Whisper on Groq sends learner audio off the device, which conflicts with "audio never leaves the device" (CLAUDE.md rule 9). Is speech-to-text exempt, or does it move into the browser too?
