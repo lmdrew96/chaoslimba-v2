@@ -15,6 +15,13 @@
       "when": 1792373088207,
       "tag": "0001_lonely_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792538505057,
+      "tag": "0002_lively_james_howlett",
+      "breakpoints": true
     }
   ]
 }

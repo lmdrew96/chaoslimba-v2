@@ -1,9 +1,6 @@
-import { getDb } from "@/db";
-import { getGardenPlantIds } from "@/db/garden";
-import { gradeFindings, gradings } from "@/db/schema";
+import { gradeAndStore } from "@/db/gradings";
 import { isRateLimited, requireUser } from "@/lib/auth";
-import { GraderIncompleteError, GraderOutputError, gradeAnswer } from "@/lib/grader";
-import { GRADER_EFFORT, GRADER_MODEL } from "@/lib/models";
+import { GraderIncompleteError, GraderOutputError } from "@/lib/grader";
 import { isPlantId, type PlantId } from "@/lib/taxonomy";
 
 const fail = (message: string, status = 400) => Response.json({ error: message }, { status });
@@ -58,60 +55,12 @@ const handle = async (req: Request, body: Record<string, unknown>): Promise<Resp
     return fail("That's a lot of grading at once. Wait a few minutes and try again.", 429);
   }
 
-  const gardenPlantIds = await getGardenPlantIds(user.id);
-
-  const result = await gradeAnswer({ answer, context, gardenPlantIds, targetPlantId });
-
-  const db = getDb();
-  const gradingId = crypto.randomUUID();
-  const findings = [
-    ...result.errors.map((e) => ({
-      gradingId,
-      userId: user.id,
-      kind: "error" as const,
-      plantId: e.plantId,
-      span: e.span,
-      correction: e.correction,
-      explanation: e.explanation,
-      confidence: e.confidence,
-      isMaybe: e.isMaybe,
-      beautifulMistake: e.beautifulMistake,
-    })),
-    ...result.correctUses.map((c) => ({
-      gradingId,
-      userId: user.id,
-      kind: "correct_use" as const,
-      plantId: c.plantId,
-      span: c.span,
-      confidence: c.confidence,
-      isMaybe: c.isMaybe,
-    })),
-    ...result.polishNotes.map((p) => ({
-      gradingId,
-      userId: user.id,
-      kind: "polish" as const,
-      span: p.span,
-      suggestion: p.suggestion,
-      explanation: p.explanation,
-    })),
-  ];
-
-  // neon-http has no interactive transactions; a batch runs as one, so a grading never lands half-saved.
-  const insertGrading = db.insert(gradings).values({
-    id: gradingId,
+  const { gradingId, result } = await gradeAndStore({
     userId: user.id,
     answer,
-    context: context || null,
-    targetPlantId: targetPlantId ?? null,
-    model: GRADER_MODEL,
-    effort: GRADER_EFFORT,
-    rawOutput: result.raw,
+    context: context || undefined,
+    targetPlantId,
   });
-  if (findings.length > 0) {
-    await db.batch([insertGrading, db.insert(gradeFindings).values(findings)]);
-  } else {
-    await insertGrading;
-  }
 
   return Response.json({
     gradingId,

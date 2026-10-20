@@ -2,7 +2,8 @@ import type { PlantId } from "./taxonomy";
 
 /**
  * Starting numbers, approved Oct 18. Tune them here; nothing else hardcodes them.
- * A "session" is a run of attempts with no gap longer than `sessionGapMinutes`.
+ * A "session" is one tutor conversation. Attempts graded outside one (the
+ * grader lab) fall back to runs with no gap longer than `sessionGapMinutes`.
  */
 export const GARDEN_RULES = {
   window: 10,
@@ -17,7 +18,7 @@ export const GARDEN_RULES = {
 export type PlantState = "sprout" | "wilting" | "growing" | "thriving";
 
 /** One confident grader finding on a plant: an error (false) or a correct use (true). */
-export type Attempt = { correct: boolean; at: Date };
+export type Attempt = { correct: boolean; at: Date; conversationId: string | null };
 
 export type PlantHealth = {
   plantId: PlantId;
@@ -35,12 +36,14 @@ export type PlantHealth = {
 const DAY_MS = 86_400_000;
 
 const countSessions = (attempts: Attempt[]): number => {
+  const conversations = new Set(attempts.flatMap((a) => (a.conversationId ? [a.conversationId] : [])));
+  const loose = attempts.filter((a) => !a.conversationId);
   const gap = GARDEN_RULES.sessionGapMinutes * 60_000;
-  let sessions = 1;
-  for (let i = 1; i < attempts.length; i++) {
-    if (attempts[i].at.getTime() - attempts[i - 1].at.getTime() > gap) sessions++;
+  let gapSessions = loose.length > 0 ? 1 : 0;
+  for (let i = 1; i < loose.length; i++) {
+    if (loose[i].at.getTime() - loose[i - 1].at.getTime() > gap) gapSessions++;
   }
-  return sessions;
+  return conversations.size + gapSessions;
 };
 
 /**
@@ -74,4 +77,23 @@ export const plantHealth = (plantId: PlantId, attempts: Attempt[], now: Date): P
     state = "thriving";
   }
   return { ...base, state, accuracy };
+};
+
+// Struggling plants first, then ones still gathering data. Thriving plants only when nothing else is left.
+const TARGET_ORDER: Record<PlantState, number> = { wilting: 0, sprout: 1, growing: 2, thriving: 3 };
+
+/**
+ * The one seed that glows: the plant the tutor steers toward next. Ties go to
+ * lower accuracy, then to the plant practiced longest ago. Null for an empty
+ * garden or one with no plant in `allowed`.
+ */
+export const pickTarget = (garden: PlantHealth[], allowed: readonly PlantId[]): PlantId | null => {
+  const candidates = garden.filter((p) => allowed.includes(p.plantId));
+  candidates.sort(
+    (a, b) =>
+      TARGET_ORDER[a.state] - TARGET_ORDER[b.state] ||
+      (a.accuracy ?? 0) - (b.accuracy ?? 0) ||
+      a.lastAttemptAt.localeCompare(b.lastAttemptAt),
+  );
+  return candidates[0]?.plantId ?? null;
 };

@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db";
-import { gradeFindings } from "@/db/schema";
+import { gradeFindings, gradings } from "@/db/schema";
 import { plantHealth, type Attempt, type PlantHealth } from "@/lib/garden";
 import type { PlantId } from "@/lib/taxonomy";
 
@@ -23,8 +23,14 @@ export const getGardenPlantIds = async (userId: string): Promise<PlantId[]> => {
 /** Every garden plant's health, computed from its confident findings ("maybe" grades never count). */
 export const getGarden = async (userId: string, now = new Date()): Promise<PlantHealth[]> => {
   const rows = await getDb()
-    .select({ plantId: gradeFindings.plantId, kind: gradeFindings.kind, createdAt: gradeFindings.createdAt })
+    .select({
+      plantId: gradeFindings.plantId,
+      kind: gradeFindings.kind,
+      createdAt: gradeFindings.createdAt,
+      conversationId: gradings.conversationId,
+    })
     .from(gradeFindings)
+    .innerJoin(gradings, eq(gradings.id, gradeFindings.gradingId))
     .where(
       and(
         eq(gradeFindings.userId, userId),
@@ -41,7 +47,7 @@ export const getGarden = async (userId: string, now = new Date()): Promise<Plant
     if (!r.plantId) continue;
     if (r.kind === "error") planted.add(r.plantId);
     const list = attempts.get(r.plantId) ?? [];
-    list.push({ correct: r.kind === "correct_use", at: r.createdAt });
+    list.push({ correct: r.kind === "correct_use", at: r.createdAt, conversationId: r.conversationId });
     attempts.set(r.plantId, list);
   }
   return [...planted].map((id) => plantHealth(id, attempts.get(id) ?? [], now));

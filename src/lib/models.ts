@@ -9,3 +9,6 @@ export const GRADER_EFFORT = "medium";
 
 /** Conversation partner. Reads the garden, never grades. Also runs the intake chat. */
 export const TUTOR_MODEL = "claude-haiku-5-5";
+
+/** Tutor thinking depth. Low keeps chat replies quick; it converses, it doesn't judge. */
+export const TUTOR_EFFORT = "low";

@@ -2,7 +2,7 @@
 // writer to the Error Garden. Precision over recall: a false correction is
 // worse than a missed error.
 
-import Anthropic from "@anthropic-ai/sdk";
+import { getClient } from "@/lib/anthropic";
 import { GRADER_EFFORT, GRADER_MODEL } from "@/lib/models";
 import {
   PLANTS,
@@ -22,7 +22,8 @@ export const MAYBE_THRESHOLD = 0.8;
 
 /** Stress and sounds come from the phoneme model; text can't show them. */
 const AUDIO_ONLY_PLANTS: readonly PlantId[] = ["stress", "sounds"];
-const TEXT_PLANT_IDS = PLANT_IDS.filter((id) => !AUDIO_ONLY_PLANTS.includes(id));
+/** Plants the text grader (and the text tutor) can work on. */
+export const TEXT_PLANT_IDS = PLANT_IDS.filter((id) => !AUDIO_ONLY_PLANTS.includes(id));
 
 export type GradeInput = {
   answer: string;
@@ -57,16 +58,6 @@ export class GraderOutputError extends Error {
     this.name = "GraderOutputError";
   }
 }
-
-let client: Anthropic | undefined;
-
-const getClient = (): Anthropic => {
-  if (client) return client;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
-  client = new Anthropic({ apiKey });
-  return client;
-};
 
 const taxonomyText = PLANTS.filter((p) => !AUDIO_ONLY_PLANTS.includes(p.id))
   .map((p) => {
