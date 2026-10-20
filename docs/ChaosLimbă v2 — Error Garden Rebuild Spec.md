@@ -57,7 +57,7 @@ Each error type is a plant whose health tracks recent accuracy on that structure
 | Sprout | Not enough data yet | Fewer than 5 confident attempts ("maybe" grades don't count); health hidden |
 | Wilting | Struggling right now | Below 60% over the last 10 confident attempts |
 | Growing | Improving | 60 to 84% |
-| Thriving | Outgrown for now | 85% or more, with attempts spread over at least 2 sessions |
+| Thriving | Outgrown for now | 85% or more, with attempts spread over at least 2 sessions (a session is one tutor conversation; until the tutor exists, a 30-minute gap starts a new one) |
 | Dormant | Not practiced lately | No attempts in 21 days; last state shown faded; never "dead" |
 
 Accuracy = correct uses / (correct uses + errors). The numbers live in one config object so they can be tuned.
