@@ -5,6 +5,7 @@ import { getGarden } from "@/db/garden";
 import { gradeAndStore } from "@/db/gradings";
 import { conversationMessages, conversations } from "@/db/schema";
 import { isRateLimited, requireUser } from "@/lib/auth";
+import { INTAKE_CLOSING_NOTE, intakeProbe } from "@/lib/intake";
 import { TutorIncompleteError, tutorReply } from "@/lib/tutor";
 
 const fail = (message: string, status = 400) => Response.json({ error: message }, { status });
@@ -40,6 +41,7 @@ export async function POST(req: Request): Promise<Response> {
       .where(and(eq(conversations.id, conversationId), eq(conversations.userId, user.id)))
       .limit(1);
     if (!conversation) return fail("Unknown conversation.", 404);
+    if (conversation.completedAt) return fail("This conversation is finished. Start a new one to keep talking.", 409);
 
     if (await isRateLimited("tutor:user", user.id, 60, 600)) {
       return fail("That's a lot of chatting at once. Wait a few minutes and try again.", 429);
@@ -56,13 +58,25 @@ export async function POST(req: Request): Promise<Response> {
       .returning();
 
     const lastTutor = [...earlier].reverse().find((m) => m.role === "tutor");
+    // The answer is graded against the target the tutor was steering toward when it asked.
     const targetPlantId = conversation.targetPlantId ?? undefined;
     const history = [...earlier, learnerRow].map((m) => ({ role: m.role, content: m.content }));
+
+    // Intake moves to the next probe every few turns, and ends once the probes run out.
+    const isIntake = conversation.kind === "intake";
+    const nextProbe = isIntake ? intakeProbe(earlier.filter((m) => m.role === "learner").length + 1) : null;
+    const finishing = isIntake && nextProbe === null;
+    const replyTarget = isIntake ? nextProbe : conversation.targetPlantId;
 
     const [grading, reply] = await Promise.allSettled([
       gradeAndStore({ userId: user.id, answer: text, context: lastTutor?.content, targetPlantId, conversationId }),
       getGarden(user.id).then((garden) =>
-        tutorReply({ history, targetPlantId: conversation.targetPlantId, garden }),
+        tutorReply({
+          history,
+          targetPlantId: replyTarget,
+          garden,
+          note: finishing ? INTAKE_CLOSING_NOTE : undefined,
+        }),
       ),
     ]);
 
@@ -95,7 +109,13 @@ export async function POST(req: Request): Promise<Response> {
       .insert(conversationMessages)
       .values({ conversationId, role: "tutor", content: reply.value })
       .returning();
-    return Response.json({ learnerMessage, tutorMessage: toChatMessage(tutorRow) });
+    if (isIntake) {
+      await db
+        .update(conversations)
+        .set(finishing ? { completedAt: new Date() } : { targetPlantId: nextProbe })
+        .where(eq(conversations.id, conversationId));
+    }
+    return Response.json({ learnerMessage, tutorMessage: toChatMessage(tutorRow), completed: finishing });
   } catch (err) {
     console.error("[tutor] turn failed", err);
     return fail("Something went wrong on our end. Try again in a moment.", 500);

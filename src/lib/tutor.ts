@@ -13,6 +13,8 @@ export type TutorInput = {
   history: TutorTurn[];
   targetPlantId: PlantId | null;
   garden: PlantHealth[];
+  /** Extra instructions for this turn only, such as intake's opening or closing. */
+  note?: string;
 };
 
 /** The model declined or ran out of room; nothing was said and nothing should be stored. */
@@ -53,13 +55,14 @@ const contextBlock = (input: TutorInput): string => {
     const plant = getPlant(input.targetPlantId);
     const example = plant.example ? ` A typical mistake: "${plant.example.error}" instead of "${plant.example.fix}".` : "";
     parts.push(`Target structure: ${plant.name}. ${plant.description}${example}`);
-  } else {
+  } else if (!input.note) {
     parts.push("No target structure yet. Just get them talking, with a mix of past, present and future.");
   }
   const others = input.garden.filter((p) => p.plantId !== input.targetPlantId).map((p) => getPlant(p.plantId).name);
   if (others.length > 0) {
     parts.push(`Other things they're working on (don't correct these live): ${others.join(", ")}.`);
   }
+  if (input.note) parts.push(input.note);
   return parts.join("\n");
 };
 

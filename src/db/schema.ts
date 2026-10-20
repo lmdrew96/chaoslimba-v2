@@ -33,6 +33,8 @@ export const plantIdEnum = pgEnum("plant_id", PLANT_IDS);
 
 export const findingKindEnum = pgEnum("finding_kind", ["error", "correct_use", "polish"]);
 
+export const conversationKindEnum = pgEnum("conversation_kind", ["practice", "intake"]);
+
 export const messageRoleEnum = pgEnum("message_role", ["tutor", "learner"]);
 
 /** One tutor conversation. It is also a garden "session" for the Thriving rule. */
@@ -41,8 +43,11 @@ export const conversations = pgTable("conversations", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  // The seed the tutor steers toward. Null when the garden is empty.
+  kind: conversationKindEnum("kind").notNull().default("practice"),
+  // The seed the tutor steers toward. Null when the garden is empty. Intake moves it along its probes.
   targetPlantId: plantIdEnum("target_plant_id"),
+  // Intake only: set when the last probe is done and the chat ends on the garden.
+  completedAt: timestamp("completed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

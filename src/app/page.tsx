@@ -9,6 +9,12 @@ export default function Home() {
       <AuthPanel />
       <div className="flex flex-wrap gap-3">
         <Link
+          href="/intake"
+          className="inline-block rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
+        >
+          Start here: your first conversation →
+        </Link>
+        <Link
           href="/tutor"
           className="inline-block rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
         >

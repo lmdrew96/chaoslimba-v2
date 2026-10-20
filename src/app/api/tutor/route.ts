@@ -1,26 +1,30 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { toChatConversation } from "@/db/conversations";
 import { getGarden } from "@/db/garden";
-import { toChatMessage, type ChatConversation } from "@/db/conversations";
 import { conversationMessages, conversations } from "@/db/schema";
 import { isRateLimited, requireUser } from "@/lib/auth";
 import { pickTarget } from "@/lib/garden";
 import { TEXT_PLANT_IDS } from "@/lib/grader";
+import { INTAKE_OPENING_NOTE, intakeProbe } from "@/lib/intake";
 import { isPlantId, type PlantId } from "@/lib/taxonomy";
 import { TutorIncompleteError, tutorReply } from "@/lib/tutor";
 
 const fail = (message: string, status = 400) => Response.json({ error: message }, { status });
 
-/** The learner's latest conversation, so a reload picks up where they were. */
+const parseKind = (value: unknown): "practice" | "intake" => (value === "intake" ? "intake" : "practice");
+
+/** The learner's latest conversation of a kind (?kind=intake), so a reload picks up where they were. */
 export async function GET(req: Request): Promise<Response> {
   try {
     const user = await requireUser(req);
     if (!user) return fail("Sign in to chat with the tutor.", 401);
+    const kind = parseKind(new URL(req.url).searchParams.get("kind"));
     const db = getDb();
     const [latest] = await db
       .select()
       .from(conversations)
-      .where(eq(conversations.userId, user.id))
+      .where(and(eq(conversations.userId, user.id), eq(conversations.kind, kind)))
       .orderBy(desc(conversations.createdAt))
       .limit(1);
     if (!latest) return Response.json({ conversation: null });
@@ -29,19 +33,17 @@ export async function GET(req: Request): Promise<Response> {
       .from(conversationMessages)
       .where(eq(conversationMessages.conversationId, latest.id))
       .orderBy(asc(conversationMessages.createdAt));
-    const conversation: ChatConversation = {
-      id: latest.id,
-      targetPlantId: latest.targetPlantId,
-      messages: messages.map(toChatMessage),
-    };
-    return Response.json({ conversation });
+    return Response.json({ conversation: toChatConversation(latest, messages) });
   } catch (err) {
     console.error("[tutor] load failed", err);
     return fail("Couldn't load your conversation. Try again in a moment.", 500);
   }
 }
 
-/** Start a new conversation. The garden picks the target unless the learner chose one. */
+/**
+ * Start a conversation. Practice: the garden picks the target unless the
+ * learner chose one. Intake: the target is the first probe.
+ */
 export async function POST(req: Request): Promise<Response> {
   let body: Record<string, unknown>;
   try {
@@ -54,6 +56,7 @@ export async function POST(req: Request): Promise<Response> {
     const user = await requireUser(req);
     if (!user) return fail("Sign in to chat with the tutor.", 401);
 
+    const kind = parseKind(body.kind);
     const chosen = body.targetPlantId == null || body.targetPlantId === "" ? undefined : String(body.targetPlantId);
     if (chosen !== undefined && (!isPlantId(chosen) || !TEXT_PLANT_IDS.includes(chosen))) {
       return fail(`Unknown plant: ${chosen}`);
@@ -63,24 +66,22 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const garden = await getGarden(user.id);
-    const targetPlantId = (chosen as PlantId | undefined) ?? pickTarget(garden, TEXT_PLANT_IDS);
-    const opening = await tutorReply({ history: [], targetPlantId, garden });
+    const targetPlantId =
+      kind === "intake" ? intakeProbe(0) : ((chosen as PlantId | undefined) ?? pickTarget(garden, TEXT_PLANT_IDS));
+    const opening = await tutorReply({
+      history: [],
+      targetPlantId,
+      garden,
+      note: kind === "intake" ? INTAKE_OPENING_NOTE : undefined,
+    });
 
     const db = getDb();
     const conversationId = crypto.randomUUID();
-    const [, [message]] = await db.batch([
-      db.insert(conversations).values({ id: conversationId, userId: user.id, targetPlantId }),
-      db
-        .insert(conversationMessages)
-        .values({ conversationId, role: "tutor", content: opening })
-        .returning(),
+    const [[conversation], [message]] = await db.batch([
+      db.insert(conversations).values({ id: conversationId, userId: user.id, kind, targetPlantId }).returning(),
+      db.insert(conversationMessages).values({ conversationId, role: "tutor", content: opening }).returning(),
     ]);
-    const conversation: ChatConversation = {
-      id: conversationId,
-      targetPlantId,
-      messages: [toChatMessage(message)],
-    };
-    return Response.json({ conversation });
+    return Response.json({ conversation: toChatConversation(conversation, [message]) });
   } catch (err) {
     if (err instanceof TutorIncompleteError) {
       console.error("[tutor] incomplete", err.reason, err.message);

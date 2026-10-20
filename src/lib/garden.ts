@@ -92,7 +92,8 @@ export const pickTarget = (garden: PlantHealth[], allowed: readonly PlantId[]): 
   candidates.sort(
     (a, b) =>
       TARGET_ORDER[a.state] - TARGET_ORDER[b.state] ||
-      (a.accuracy ?? 0) - (b.accuracy ?? 0) ||
+      // A sprout's accuracy is hidden from the learner, but its raw ratio still breaks ties.
+      a.windowCorrect / a.windowAttempts - b.windowCorrect / b.windowAttempts ||
       a.lastAttemptAt.localeCompare(b.lastAttemptAt),
   );
   return candidates[0]?.plantId ?? null;
