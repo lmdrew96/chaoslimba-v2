@@ -1,5 +1,5 @@
-import { and, eq, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db";
+import { getGardenPlantIds } from "@/db/garden";
 import { gradeFindings, gradings } from "@/db/schema";
 import { isRateLimited, requireUser } from "@/lib/auth";
 import { GraderIncompleteError, GraderOutputError, gradeAnswer } from "@/lib/grader";
@@ -58,24 +58,11 @@ const handle = async (req: Request, body: Record<string, unknown>): Promise<Resp
     return fail("That's a lot of grading at once. Wait a few minutes and try again.", 429);
   }
 
-  const db = getDb();
-
-  // The garden holds a plant once the learner has made a confident error on it.
-  const gardenRows = await db
-    .selectDistinct({ plantId: gradeFindings.plantId })
-    .from(gradeFindings)
-    .where(
-      and(
-        eq(gradeFindings.userId, user.id),
-        eq(gradeFindings.kind, "error"),
-        eq(gradeFindings.isMaybe, false),
-        isNotNull(gradeFindings.plantId),
-      ),
-    );
-  const gardenPlantIds = gardenRows.flatMap((r) => (r.plantId ? [r.plantId] : []));
+  const gardenPlantIds = await getGardenPlantIds(user.id);
 
   const result = await gradeAnswer({ answer, context, gardenPlantIds, targetPlantId });
 
+  const db = getDb();
   const gradingId = crypto.randomUUID();
   const findings = [
     ...result.errors.map((e) => ({
